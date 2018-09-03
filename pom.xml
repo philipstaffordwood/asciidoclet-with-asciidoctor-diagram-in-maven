@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.philipstaffordwood</groupId>
+    <artifactId>asciidoclet-with-asciidoctor-diagram-in-maven</artifactId>
+    <packaging>jar</packaging>
+    <version>0.1</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <!-- This is to allow JRuby GEM dependencies to be resolved -->
+    <!-- see https://github.com/torquebox/jruby-maven-plugins#gem-artifacts -->
+    <repositories>
+        <repository>
+            <id>rubygems-release</id>
+            <url>http://rubygems-proxy.torquebox.org/releases</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+
+
+        <!--<dependency>-->
+            <!--<groupId>org.apache.maven.doxia</groupId>-->
+            <!--<artifactId>doxia-site-renderer</artifactId>-->
+            <!--<version>1.8.1</version>-->
+        <!--</dependency>-->
+
+
+        <!--<dependency>-->
+            <!--<groupId>net.sourceforge.plantuml</groupId>-->
+            <!--<artifactId>plantuml</artifactId>-->
+            <!--<version>1.2017.15</version>-->
+        <!--</dependency>-->
+
+
+        <!-- this is the gem we are looking for to draw -->
+        <!-- diagrams in the javadocs using the asciidoctor doclet -->
+        <!-- see https://github.com/torquebox/jruby-maven-plugins#gem-artifacts -->
+        <dependency>
+            <groupId>rubygems</groupId>
+            <artifactId>asciidoctor-diagram</artifactId>
+            <version>1.5.9</version>
+            <type>gem</type>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- gem-maven-plugin -->
+            <!-- instructed to copy the gems to the build directory -->
+            <!-- see https://github.com/torquebox/jruby-maven-plugins#installing-gems-into-you-project-directory -->
+            <plugin>
+                <groupId>de.saumya.mojo</groupId>
+                <artifactId>gem-maven-plugin</artifactId>
+                <version>1.1.5</version>
+                <configuration>
+                    <gemHome>${project.build.directory}/gems</gemHome>
+                    <gemPath>${project.build.directory}/gems</gemPath>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>initialize</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- javadoc plugin to generate the javadocs -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9</version>
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>attach-javadocs</id>-->
+                        <!--<goals>-->
+                            <!--<goal>jar</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <configuration>
+                    <!--&lt;!&ndash;updating source to match project &ndash;&gt;-->
+                    <!--<source>1.8</source>-->
+
+                    <!-- we choose to use the Asciidoclet to generate the docs -->
+                    <!-- as opposed to the standard doclet -->
+                    <doclet>org.asciidoctor.Asciidoclet</doclet>
+                    <docletArtifact>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoclet</artifactId>
+                        <version>1.5.4</version>
+                    </docletArtifact>
+                    <!-- The doclet release notes -->
+                    <!-- https://asciidoctor.org/news/tag/plugin/#embedding-diagrams-in-javadoc -->
+                    <!--specify the -->
+                    <!-- - -require -->
+                    <!-- - -gem-path -->
+                    <!-- and -->
+                    <!-- - - attribute data-uri -->
+                    <!-- but doesn't make it clear how to include the gem -->
+                    <!-- without using the command line -->
+
+                    <additionalparam>
+                        --base-dir ${project.basedir}
+                        --attribute "project_name=${project.name}"
+                        --attribute "project_version=${project.version}"
+                        --attribute "project_desc=${project.description}"
+                        --require asciidoctor-diagram
+                        --gem-path ${project.build.directory}/gems
+                        --attribute data-uri
+                    </additionalparam>
+                    <linksource>true</linksource>
+                    <overview>src/main/java/overview.adoc</overview>
+                    <!-- this dependency is required for JRuby -->
+                    <!-- to find the gem when generating the doc -->
+                    <!-- otherwise an error like the below occurs -->
+                    <!--
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-javadoc-plugin:2.9:javadoc (default-cli) on project hello-didakt: An error has occurred in JavaDocs report generation:
+[ERROR] Exit code: 1 - io/console not supported; tty will not be manipulated
+[ERROR] javadoc: error - In doclet class org.asciidoctor.Asciidoclet,  method start has thrown an exception java.lang.reflect.InvocationTargetException
+[ERROR] org.jruby.exceptions.RaiseException: (LoadError) no such file to load - - asciidoctor-diagram
+[ERROR] at org.jruby.RubyKernel.require(org/jruby/RubyKernel.java:1040)
+[ERROR] at RUBY.require(/C:/Users/BCX/.m2/repository/org/asciidoctor/asciidoclet/1.5.4/asciidoclet-1.5.4.jar!/META-INF/jruby.home/lib/ruby/shared/rubygems/core_ext/kernel_require.rb:54)
+[ERROR] at RUBY.(root)(<script>:1)
+                    -->
+                    <additionalDependencies>
+                        <additionalDependency>
+                            <groupId>rubygems</groupId>
+                            <artifactId>asciidoctor-diagram</artifactId>
+                            <version>1.5.9</version>
+                            <type>gem</type>
+                        </additionalDependency>
+                    </additionalDependencies>
+                </configuration>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+
+</project>
